@@ -23,33 +23,58 @@
 
 ---
 
-## Step 1: Create the resource group
+## Step 1: Find your allowed region and create the resource group
 
 A resource group is a folder that holds everything in Gotham. That makes it easy to see costs and delete it all in one go if you ever need to.
 
-1. Azure portal → search **Resource groups** → **+ Create**
-2. **Subscription:** Azure for Students
-3. **Resource group:** `rg-gotham`
-4. **Region:** `Canada Central`
-5. **Review + create** → **Create**
+### 1a. Create the resource group
 
-> ⚠️ **"Disallowed by policy" error?** Student subscriptions only allow certain regions. The error message lists which ones are allowed; pick one of those and use the **same region for everything** in this guide.
+```bash
+az group create --name rg-gotham --location canadacentral
+```
+
+(Or in the portal: **Resource groups** → **+ Create** → name `rg-gotham`.) The resource group's location is only a label; the resources inside it can live in any region.
+
+### 1b. Find which region your subscription can actually use
+
+Azure for Students only allows a few regions per account, and the error (`RequestDisallowedByAzure`) doesn't say which. This loop tests each candidate by creating a free, empty test network and deleting it right away:
+
+```bash
+for r in canadaeast canadacentral eastus eastus2 centralus northcentralus southcentralus westus2 westus3; do
+  if az network vnet create -g rg-gotham -n "test-$r" --location $r --address-prefix 10.99.0.0/16 -o none 2>/dev/null; then
+    echo "✅ $r allowed"
+    az network vnet delete -g rg-gotham -n "test-$r"
+  else
+    echo "❌ $r blocked"
+  fi
+done
+```
+
+> 🦇 **This lab uses `northcentralus`**, the only region allowed on my subscription. Use whichever region is ✅ for you, and use that **same region for everything** below.
+
+> 💡 If everything fails, register the networking and compute services first, wait a minute, and retry:
+> `az provider register --namespace Microsoft.Network` and `az provider register --namespace Microsoft.Compute`
 
 ---
 
 ## Step 2: Create the network
 
-1. Search **Virtual networks** → **+ Create**
-2. **Basics** tab:
-   - Resource group: `rg-gotham`
-   - Name: `vnet-gotham`
-   - Region: same as your resource group
-3. **IP addresses** tab:
-   - Address space: `10.0.0.0/16`
-   - Edit the default subnet → name it `snet-wayne`, range `10.0.1.0/24`
-4. **Review + create** → **Create**
+```bash
+az network vnet create -g rg-gotham -n vnet-gotham --location northcentralus --address-prefix 10.0.0.0/16
 
-📸 The virtual network overview page.
+az network vnet subnet create -g rg-gotham --vnet-name vnet-gotham -n snet-wayne \
+  --address-prefix 10.0.1.0/24 --default-outbound-access true
+```
+
+`--default-outbound-access true` lets machines without a public IP (like the workstation) still reach the internet for updates and security tools.
+
+Check it:
+
+```bash
+az network vnet show -g rg-gotham -n vnet-gotham --query "subnets[].{name:name, range:addressPrefix}" -o table
+```
+
+📸 The virtual network overview page in the portal (**Virtual networks** → `vnet-gotham`).
 
 ---
 
@@ -62,7 +87,7 @@ A resource group is a folder that holds everything in Gotham. That makes it easy
    |---|---|
    | Resource group | `rg-gotham` |
    | Virtual machine name | `WAYNE-DC01` |
-   | Region | same as before |
+   | Region | `(US) North Central US` (your allowed region from Step 1b) |
    | Availability options | No infrastructure redundancy required |
    | Security type | Standard |
    | Image | Click **See all images**, search **Windows Server**, and choose **[smalldisk] Windows Server 2022 Datacenter: Azure Edition** (Gen2) |
@@ -256,7 +281,7 @@ With ~10 hours of lab time a week, expect roughly **$15–25/month**. Check your
 |---|---|
 | RDP suddenly won't connect | Your IP changed. Update the RDP rule to **My IP address** (Step 3b). |
 | `Resolve-DnsName wayne.local` fails on WS01 | Check the VNet DNS is `10.0.1.4` (Step 5), make sure the DC is running, then restart WS01 from the portal. |
-| "Disallowed by policy" | Your student subscription limits regions. Use one listed in the error. |
+| `RequestDisallowedByAzure` / "Disallowed by policy" | Your student subscription limits regions. Run the region test in Step 1b and use a ✅ region. |
 | "Operation could not be completed as it results in exceeding quota" | Student subscriptions cap vCPUs. Check **Subscriptions → Usage + quotas**; run fewer VMs at once or use smaller sizes. |
 | Domain join says "access denied" | Use `WAYNE\alfred` (with the `WAYNE\`), not just `alfred`. |
 
