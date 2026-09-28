@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# RDP connection files contain hostnames/IPs
+*.rdp
+
+# Never commit secrets
+*.env
+.env*
+*secret*
+*password*
