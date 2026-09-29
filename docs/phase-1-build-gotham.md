@@ -286,7 +286,7 @@ With ~10 hours of lab time a week, expect roughly **$15–25/month**. Check your
 | Auto-shutdown via CLI fails with `RequestDisallowedByAzure` | Add `--location <your-region>`; otherwise the schedule uses the resource group's region. |
 | "Logon attempt failed" connecting from the DC to WS01 before it's domain-joined | Use `WAYNE-WS01\alfred` or `.\alfred`; a bare `alfred` is treated as the domain account. |
 | `Add-DnsServerForwarder` warns the forwarder already exists | Normal on Azure: promotion copies the NIC's DNS (168.63.129.16) as a forwarder automatically. |
-| Default VM size shows `NotAvailableForSubscription` | Run `az vm list-skus --location <region> --resource-type virtualMachines --query '[?length(restrictions)==\`0\`].name' -o tsv \| grep Standard_B2` and pick one with 4 GB+ RAM. |
+| Default VM size shows `NotAvailableForSubscription` | Run `` az vm list-skus --location <region> --resource-type virtualMachines --query '[?length(restrictions)==`0`].name' -o tsv \| grep Standard_B2 `` and pick one with 4 GB+ RAM. |
 | Domain join says "access denied" | Use `WAYNE\alfred` (with the `WAYNE\`), not just `alfred`. |
 
 ---
