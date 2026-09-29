@@ -283,6 +283,10 @@ With ~10 hours of lab time a week, expect roughly **$15–25/month**. Check your
 | `Resolve-DnsName wayne.local` fails on WS01 | Check the VNet DNS is `10.0.1.4` (Step 5), make sure the DC is running, then restart WS01 from the portal. |
 | `RequestDisallowedByAzure` / "Disallowed by policy" | Your student subscription limits regions. Run the region test in Step 1b and use a ✅ region. |
 | "Operation could not be completed as it results in exceeding quota" | Student subscriptions cap vCPUs. Check **Subscriptions → Usage + quotas**; run fewer VMs at once or use smaller sizes. |
+| Auto-shutdown via CLI fails with `RequestDisallowedByAzure` | Add `--location <your-region>`; otherwise the schedule uses the resource group's region. |
+| "Logon attempt failed" connecting from the DC to WS01 before it's domain-joined | Use `WAYNE-WS01\alfred` or `.\alfred`; a bare `alfred` is treated as the domain account. |
+| `Add-DnsServerForwarder` warns the forwarder already exists | Normal on Azure: promotion copies the NIC's DNS (168.63.129.16) as a forwarder automatically. |
+| Default VM size shows `NotAvailableForSubscription` | Run `az vm list-skus --location <region> --resource-type virtualMachines --query '[?length(restrictions)==\`0\`].name' -o tsv \| grep Standard_B2` and pick one with 4 GB+ RAM. |
 | Domain join says "access denied" | Use `WAYNE\alfred` (with the `WAYNE\`), not just `alfred`. |
 
 ---
