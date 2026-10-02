@@ -34,7 +34,7 @@ flowchart LR
 | `WAYNE-DC01` | Domain controller for `wayne.local`, DNS | Windows Server 2022 |
 | `WAYNE-WS01` | Employee workstation (the villains' favourite target) | Windows Server 2022 |
 | `BATCOMPUTER` | SIEM: collects and analyzes every log in Gotham | Ubuntu + Wazuh |
-| `ARKHAM` | Attacker machine | Kali Linux |
+| `ARKHAM` | Attacker machine (dropped: student vCPU quota is 6/6; attacks run on WS01 with Atomic Red Team) | Kali Linux |
 
 ---
 
@@ -58,7 +58,7 @@ Each villain represents a real attacker technique from the [MITRE ATT&CK](https:
 ## 🛠️ Roadmap
 
 - [x] **Phase 1: Build Gotham.** ✅ Azure network, domain controller, `wayne.local` domain, users, and workstation → [guide](docs/phase-1-build-gotham.md)
-- [ ] **Phase 2: The Batcomputer.** Deploy Wazuh SIEM, install Sysmon and agents, get logs flowing
+- [ ] **Phase 2: The Batcomputer.** 🟡 In progress: Wazuh 4.14 installed; agents and Sysmon next → [guide](docs/phase-2-batcomputer.md)
 - [ ] **Phase 3: The villains attack.** Kali attacker and Atomic Red Team simulations
 - [ ] **Phase 4: Oracle responds.** Write a detection rule for every attack
 - [ ] **Phase 5: Case files.** A professional incident report per villain
