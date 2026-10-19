@@ -121,4 +121,5 @@ sudo tar -O -xf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
 | PowerShell window looks frozen; title says "Select ..." | Clicking the window starts text selection and pauses output. Press **Esc**. |
 | Typed commands do nothing after `tail -f` | `tail -f` follows the log forever. Press **Ctrl+C** to stop it. |
 | RDP to the DC fails from a new location | Your public IP changed: `az network nsg rule update -g rg-gotham --nsg-name WAYNE-DC01-nsg -n RDP --source-address-prefixes $(curl -s https://api.ipify.org)` |
+| `AADSTS70043: The refresh token has expired` on any `az` command | The school tenant's Conditional Access policy forces re-authentication every 7 days. Run `az logout`, then `az login --tenant <tenant-id>`. |
 | Ubuntu suggests `do-release-upgrade` to 24.04 | Ignore it. Major OS upgrades on a working security server need planning. |
