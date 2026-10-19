@@ -2,7 +2,7 @@
 
 **Goal:** a Wazuh SIEM that collects and analyzes logs from every machine in Gotham.
 
-**Status:** 🟡 In progress. Wazuh is installed; agents and Sysmon are next.
+**Status:** 🟢 Core complete. SIEM, agents and Sysmon are working; admin password rotation is pending.
 
 ---
 
@@ -103,13 +103,95 @@ sudo tar -O -xf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
 
 📸 [`03-wazuh-install-finished.png`](../screenshots/phase-2/03-wazuh-install-finished.png)
 
-## Next
+## Step 7: Log into the dashboard
 
-- [ ] Log into the dashboard at `https://10.0.1.6` from the DC
-- [ ] Rotate the `admin` password
-- [ ] Install Wazuh agents on WAYNE-DC01 and WAYNE-WS01
-- [ ] Install Sysmon and forward its logs to Wazuh
-- [ ] Verify events from both machines appear in the dashboard
+From the DC (or WS01), open Edge → `https://10.0.1.6` → accept the self-signed certificate warning (`NET::ERR_CERT_AUTHORITY_INVALID`) → log in as `admin`.
+
+📸 [`04-wazuh-dashboard-first-login.png`](../screenshots/phase-2/04-wazuh-dashboard-first-login.png)
+
+## Step 8: Deploy agents to both Windows machines
+
+Dashboard → **Deploy new agent** → Windows MSI → server address `10.0.1.6` → agent name `WAYNE-DC01` (then `WAYNE-WS01` for the second). Run the generated command in an **elevated** PowerShell on each machine, then:
+
+```powershell
+NET START Wazuh
+```
+
+- The **server address never changes**: it is where every agent sends logs (the Batcomputer).
+- The **agent name must be unique**: it is how an analyst knows which machine an alert came from.
+- Agents **register** on TCP 1515, then **send events** on TCP 1514. "Never connected" means step 2 hasn't happened yet (service not started).
+
+📸 [`05-dc01-agent-active.png`](../screenshots/phase-2/05-dc01-agent-active.png) · [`06-both-agents-active.png`](../screenshots/phase-2/06-both-agents-active.png)
+
+## Step 9: Install Sysmon on both machines
+
+Windows' default logs miss process creation detail, network connections and file creation. Sysmon adds them. Config: [SwiftOnSecurity sysmon-config](https://github.com/SwiftOnSecurity/sysmon-config).
+
+```powershell
+New-Item -ItemType Directory -Path C:\Tools\Sysmon -Force
+Invoke-WebRequest -Uri https://download.sysinternals.com/files/Sysmon.zip -OutFile C:\Tools\Sysmon\Sysmon.zip -UseBasicParsing
+Expand-Archive C:\Tools\Sysmon\Sysmon.zip -DestinationPath C:\Tools\Sysmon -Force
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml -OutFile C:\Tools\Sysmon\sysmonconfig.xml -UseBasicParsing
+C:\Tools\Sysmon\Sysmon64.exe -accepteula -i C:\Tools\Sysmon\sysmonconfig.xml
+```
+
+Verify: `Get-WinEvent -LogName "Microsoft-Windows-Sysmon/Operational" -MaxEvents 5`
+
+Sysmon Event ID 16 logs the SHA256 of the active config, so tampering with the config (a common way to blind monitoring) is itself detectable.
+
+📸 [`07`](../screenshots/phase-2/07-ws01-sysmon-installed.png) · [`08`](../screenshots/phase-2/08-ws01-sysmon-first-events.png) · [`09`](../screenshots/phase-2/09-dc01-sysmon-installed.png) · [`10`](../screenshots/phase-2/10-dc01-sysmon-config-hash.png)
+
+## Step 10: Collect Sysmon centrally
+
+Dashboard → **Agents management → Groups → default → Files → agent.conf**:
+
+```xml
+<agent_config os="Windows">
+  <localfile>
+    <location>Microsoft-Windows-Sysmon/Operational</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+</agent_config>
+```
+
+Every Windows agent in the group picks this up and restarts on its own. No per-machine changes. Verify on each machine:
+
+```powershell
+Select-String -Path "C:\Program Files (x86)\ossec-agent\ossec.log" -Pattern "Sysmon"
+# INFO: (1951): Analyzing event log: 'Microsoft-Windows-Sysmon/Operational'.
+```
+
+Both agents picked it up at the same second (20:43:42).
+
+📸 [`11`](../screenshots/phase-2/11-agent-conf-sysmon-collection.png) · [`12`](../screenshots/phase-2/12-dc01-agent-reading-sysmon.png) · [`13`](../screenshots/phase-2/13-ws01-agent-reading-sysmon.png)
+
+## Step 11: Test: catch reconnaissance
+
+On WS01, run the commands an attacker uses right after getting in:
+
+```powershell
+whoami /all
+net user /domain
+net group "Domain Admins" /domain
+```
+
+In ~10 seconds these reveal every account in the company and the single domain admin (`alfred`): a target list and a target.
+
+Dashboard → **Threat Hunting → Events** → `rule.groups: sysmon`, last 15 minutes:
+
+| Rule ID | Description | Level |
+|---|---|---|
+| 92039 | A net.exe account discovery command was initiated | 3 |
+| 92031 | Discovery activity executed | 3 |
+| 92033 | Discovery activity spawned via PowerShell | 3 |
+
+**Observation for Phase 4:** enumerating Domain Admins from a workstation is a strong early-warning sign, yet the built-in rules rate it level 3 (low). A custom rule should raise its severity.
+
+📸 [`14`](../screenshots/phase-2/14-test-recon-net-user.png) · [`15`](../screenshots/phase-2/15-test-recon-domain-admins.png) · [`16`](../screenshots/phase-2/16-sysmon-alerts-in-wazuh.png) · [`17`](../screenshots/phase-2/17-caught-recon-discovery-alerts.png)
+
+## Remaining
+
+- [ ] Rotate the Wazuh `admin` password (it appeared in a screenshot during setup)
 
 ---
 
@@ -122,4 +204,8 @@ sudo tar -O -xf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
 | Typed commands do nothing after `tail -f` | `tail -f` follows the log forever. Press **Ctrl+C** to stop it. |
 | RDP to the DC fails from a new location | Your public IP changed: `az network nsg rule update -g rg-gotham --nsg-name WAYNE-DC01-nsg -n RDP --source-address-prefixes $(curl -s https://api.ipify.org)` |
 | `AADSTS70043: The refresh token has expired` on any `az` command | The school tenant's Conditional Access policy forces re-authentication every 7 days. Run `az logout`, then `az login --tenant <tenant-id>`. |
+| Remote Desktop login to WS01 fails with the right password | RDP remembered a different saved account (e.g. `WAYNE\bwayne`). Check the username in the prompt; use **More choices → Use a different account**. `Get-ADUser <name> -Properties BadLogonCount,LastBadPasswordAttempt` on the DC shows which account actually received the failures. |
+| Windows commands return `command not found` | You're in the SSH session to the Batcomputer (`oracle@BATCOMPUTER:~$`), which is Linux. Use a Windows PowerShell (`PS C:\>`). |
+| Browser can't reach the dashboard (`ERR_CONNECTION_TIMED_OUT`) | Check the address: everything in Gotham is `10.0.1.x`. |
+| Agent shows "never connected" | It registered (1515) but isn't sending (1514). Run `NET START Wazuh` and check `ossec.log`. |
 | Ubuntu suggests `do-release-upgrade` to 24.04 | Ignore it. Major OS upgrades on a working security server need planning. |
