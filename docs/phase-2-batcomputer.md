@@ -2,7 +2,7 @@
 
 **Goal:** a Wazuh SIEM that collects and analyzes logs from every machine in Gotham.
 
-**Status:** 🟢 Core complete. SIEM, agents and Sysmon are working; admin password rotation is pending.
+**Status:** ✅ Complete
 
 ---
 
@@ -189,9 +189,35 @@ Dashboard → **Threat Hunting → Events** → `rule.groups: sysmon`, last 15 m
 
 📸 [`14`](../screenshots/phase-2/14-test-recon-net-user.png) · [`15`](../screenshots/phase-2/15-test-recon-domain-admins.png) · [`16`](../screenshots/phase-2/16-sysmon-alerts-in-wazuh.png) · [`17`](../screenshots/phase-2/17-caught-recon-discovery-alerts.png)
 
-## Remaining
+## Step 12: Rotate the exposed admin credential
 
-- [ ] Rotate the Wazuh `admin` password (it appeared in a screenshot during setup)
+The original `admin` password appeared in screenshots during setup. Exposed credentials get rotated, even when the risk is low (the dashboard has no public IP).
+
+```bash
+read -s -p "New admin password: " NEWPW; echo     # keeps it off screen and out of ~/.bash_history
+sudo bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh -u admin -p "$NEWPW"
+unset NEWPW
+sudo filebeat test output                          # expect "talk to server... OK"
+sudo systemctl restart filebeat
+```
+
+Wazuh requires 8–64 characters with upper, lower, a number and one of `.*+?-`. On an all-in-one server the tool also updates Filebeat's keystore; the dashboard and manager use other internal accounts. Verified by logging into the dashboard with the new password and confirming alerts kept arriving after the change.
+
+📸 [`18`](../screenshots/phase-2/18-admin-credential-rotated-filebeat-ok.png) · [`19`](../screenshots/phase-2/19-threat-hunting-mitre-after-rotation.png)
+
+## What the Batcomputer already sees
+
+The Threat Hunting dashboard maps the session's own activity to MITRE ATT&CK:
+
+| Technique | Where it came from |
+|---|---|
+| Valid Accounts (T1078) | Domain logons: RDP into DC01 and WS01 |
+| Account Discovery (T1087) | `net user /domain`, `net group "Domain Admins" /domain` |
+| Remote Services (T1021) | RDP from DC01 to WS01 |
+| Windows Command Shell / PowerShell (T1059) | Every admin command run today |
+| Sudo and Sudo Caching (T1548.003) | `sudo` on the Batcomputer itself (the manager monitors its own host) |
+
+Every one of these was legitimate admin work, which is the core problem in detection: attackers use the same techniques. Telling them apart is what Phases 3–4 are about.
 
 ---
 

@@ -18,7 +18,7 @@ flowchart LR
     subgraph vnet["vnet-gotham · 10.0.1.0/24"]
       dc["WAYNE-DC01<br/>Domain Controller + DNS<br/>10.0.1.4"]
       ws["WAYNE-WS01<br/>Employee workstation<br/>10.0.1.5 (no public IP)"]
-      bat["BATCOMPUTER<br/>Wazuh SIEM<br/>(Phase 2)"]
+      bat["BATCOMPUTER<br/>Wazuh SIEM<br/>10.0.1.6"]
       kali["ARKHAM<br/>Kali attacker<br/>(Phase 3)"]
     end
   end
@@ -58,7 +58,7 @@ Each villain represents a real attacker technique from the [MITRE ATT&CK](https:
 ## 🛠️ Roadmap
 
 - [x] **Phase 1: Build Gotham.** ✅ Azure network, domain controller, `wayne.local` domain, users, and workstation → [guide](docs/phase-1-build-gotham.md)
-- [ ] **Phase 2: The Batcomputer.** 🟢 Wazuh SIEM, agents on DC01 + WS01, Sysmon collected centrally; first recon detected → [guide](docs/phase-2-batcomputer.md)
+- [x] **Phase 2: The Batcomputer.** ✅ Wazuh SIEM, agents on DC01 + WS01, Sysmon collected centrally, first recon detected, exposed credential rotated → [guide](docs/phase-2-batcomputer.md)
 - [ ] **Phase 3: The villains attack.** Kali attacker and Atomic Red Team simulations
 - [ ] **Phase 4: Oracle responds.** Write a detection rule for every attack
 - [ ] **Phase 5: Case files.** A professional incident report per villain
