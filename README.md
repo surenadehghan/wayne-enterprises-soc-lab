@@ -12,7 +12,7 @@ The Batman theme is the story. The skills are real: Active Directory, SIEM engin
 
 ```mermaid
 flowchart LR
-  you["💻 Analyst laptop<br/>(macOS)"] -->|"RDP, locked to my IP only"| dc
+  you["💻 Analyst workstation<br/>(macOS / Windows)"] -->|"RDP, locked to my IP only"| dc
 
   subgraph azure["Azure · rg-gotham · North Central US"]
     subgraph vnet["vnet-gotham · 10.0.1.0/24"]
@@ -88,6 +88,12 @@ A working Windows domain, `wayne.local`, running in Azure: one domain controller
 | VM review showed no network security group | Portal default left the NIC without an NSG, so RDP would have been blocked | Set a Basic NSG, then restricted RDP to my IP only |
 | Auto-shutdown for WS01 was rejected by region policy | The schedule resource defaulted to the resource group's region, not the VM's | Passed `--location northcentralus` explicitly |
 | "Logon attempt failed" when connecting to WS01 | From a domain-joined machine, RDP assumed the `WAYNE\` domain account instead of WS01's local account | Logged in with an explicit machine prefix (`WAYNE-WS01\alfred`) |
+
+---
+
+## 💻 Analyst Workstation
+
+The lab is controlled remotely, so the analyst machine is interchangeable: **Phases 1–2 were built from a MacBook, Phases 3–5 from a Windows PC.** See [Working from Windows](docs/working-from-windows.md) for the command differences.
 
 ---
 
