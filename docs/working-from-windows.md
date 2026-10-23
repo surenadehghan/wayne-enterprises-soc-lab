@@ -12,11 +12,14 @@ The whole lab runs in Azure, so the computer you control it from is interchangea
 winget install -e --id Microsoft.AzureCLI
 ```
 
-Close and reopen PowerShell, then sign in to the school tenant:
+Close and reopen PowerShell. **Before signing in**, turn off the Windows sign-in broker so the login uses a normal browser tab:
 
 ```powershell
+az config set core.enable_broker_on_windows=false
 az login --tenant "<your-tenant-id>"
 ```
+
+> ⚠️ **Why:** by default on Windows, `az login` uses Windows' account broker, which can try to enroll your **personal PC** in the school's device management (MDM), letting the organization apply policies to it. On a personal machine, never accept "Allow my organization to manage my device". If it was attempted, check **Settings → Accounts → Access work or school** and **Disconnect** the school account.
 
 **2. Remote Desktop is built in.** Start → `mstsc` → enter the DC's public IP → log in as `WAYNE\alfred`. No extra app needed.
 
