@@ -45,7 +45,7 @@ Each villain represents a real attacker technique from the [MITRE ATT&CK](https:
 | Villain | Attack style | MITRE ATT&CK techniques | Case file |
 |---|---|---|---|
 | 🎭 **Scarecrow** | Phishing and malicious documents: fear makes users click | T1566 Phishing, T1204 User Execution | *coming soon* |
-| ❓ **The Riddler** | Reconnaissance: mapping the network, one clue at a time | T1087 Account Discovery, T1018 Remote System Discovery, T1482 Domain Trust Discovery | *coming soon* |
+| ❓ **The Riddler** ✅ | Reconnaissance: mapping the network, one clue at a time | T1087.002 Account Discovery (Domain) | **[Case file](case-files/01-the-riddler.md)** |
 | 🐧 **The Penguin** | Credential theft: password spraying and dumping | T1110.003 Password Spraying, T1003 OS Credential Dumping | *coming soon* |
 | 🪙 **Two-Face** | Persistence: a hidden second identity on the network | T1136 Create Account, T1053 Scheduled Task | *coming soon* |
 | 🌿 **Poison Ivy** | Lateral movement: spreading from machine to machine | T1021 Remote Services | *coming soon* |
@@ -59,8 +59,8 @@ Each villain represents a real attacker technique from the [MITRE ATT&CK](https:
 
 - [x] **Phase 1: Build Gotham.** ✅ Azure network, domain controller, `wayne.local` domain, users, and workstation → [guide](docs/phase-1-build-gotham.md)
 - [x] **Phase 2: The Batcomputer.** ✅ Wazuh SIEM, agents on DC01 + WS01, Sysmon collected centrally, first recon detected, exposed credential rotated → [guide](docs/phase-2-batcomputer.md)
-- [ ] **Phase 3: The villains attack.** Kali attacker and Atomic Red Team simulations
-- [ ] **Phase 4: Oracle responds.** Write a detection rule for every attack
+- [~] **Phase 3: The villains attack.** 🟡 In progress — The Riddler (T1087.002) done; Atomic Red Team on WS01 → [guide](docs/phase-3-villains.md)
+- [~] **Phase 4: Oracle responds.** 🟡 In progress — custom rule [100100](detections/local_rules.xml) catches Domain Admins enumeration at level 12 (was level 3)
 - [ ] **Phase 5: Case files.** A professional incident report per villain
 
 ---
@@ -103,7 +103,8 @@ The lab is controlled remotely, so the analyst machine is interchangeable: **Pha
 - **Identity:** Active Directory Domain Services, DNS, OUs, users and groups, domain joins
 - **Security monitoring:** SIEM deployment, log collection, Sysmon, alert triage
 - **Threat-informed defense:** attack simulation mapped to MITRE ATT&CK
-- **Detection engineering:** writing and tuning custom detection rules
+- **Detection engineering:** writing, deploying and tuning custom Wazuh rules as code (Git → SIEM)
+- **Adversary emulation:** simulating MITRE ATT&CK techniques with Atomic Red Team and validating detections
 - **Communication:** incident reports written for both technical and non-technical readers
 
 ---
@@ -113,7 +114,7 @@ The lab is controlled remotely, so the analyst machine is interchangeable: **Pha
 ```
 docs/          Step-by-step build guides for each phase
 scripts/       PowerShell and shell scripts used to build and run the lab
-detections/    Custom detection rules (Phase 4)
+detections/    Custom Wazuh detection rules (detection-as-code)
 case-files/    Incident reports, one per villain (Phase 5)
 screenshots/   Evidence and build screenshots
 ```
